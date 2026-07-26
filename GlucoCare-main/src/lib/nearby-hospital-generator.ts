@@ -36,7 +36,7 @@ function extractFirstJsonObject(raw: string): string {
 }
 
 function getModel() {
-  const modelName = import.meta.env.VITE_FIREBASE_AI_MODEL || "gemini-2.5-flash-lite";
+  const modelName = import.meta.env.VITE_FIREBASE_AI_MODEL || "gemini-3.5-flash-lite";
   const responseSchema = Schema.object({
     properties: {
       hospitals: Schema.array({
