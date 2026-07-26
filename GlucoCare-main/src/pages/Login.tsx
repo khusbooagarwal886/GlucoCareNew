@@ -5,37 +5,61 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { handleGoogleSignIn } from "@/lib/auth-helpers";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 
+const DEMO_ACCOUNTS = [
+  "demo.patient@glucocare.com",
+  "demo.doctor@glucocare.com",
+];
+
 const Login = () => {
-  const { user } = useAuthUser();
+  const { user, profile, loading: authLoading } = useAuthUser();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    // If user is authenticated AND has a profile with a role, redirect to home
+    if (user && profile && profile.role) {
       navigate("/");
     }
-  }, [user, navigate]);
+    // If user is authenticated but NO profile exists, they need onboarding
+    else if (user && !profile && !authLoading) {
+      navigate("/role-setup");
+    }
+  }, [user, profile, authLoading, navigate]);
 
   const handleGoogleSignIn = async () => {
-    setLoading(true);
+    setSigningIn(true);
     try {
-      // For login, we'll just use the basic Google sign-in
-      // The role selection will happen during onboarding
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      toast.success("Signed in successfully!");
+      const result = await signInWithPopup(auth, provider);
+      
+      // Check if this is a demo account
+      const isDemoAccount = DEMO_ACCOUNTS.includes(result.user.email || "");
+      
+      if (isDemoAccount) {
+        toast.success("Demo account loaded!");
+      } else {
+        toast.success("Signed in successfully!");
+      }
+      // Navigation happens automatically via useEffect when profile loads
     } catch (error: any) {
       console.error("Google sign in error:", error);
       toast.error(error.message || "Failed to sign in with Google");
     } finally {
-      setLoading(false);
+      setSigningIn(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
 
   if (user) {
     return null; // Navigating via useEffect
@@ -52,9 +76,9 @@ const Login = () => {
             onClick={handleGoogleSignIn} 
             className="w-full" 
             variant="hero"
-            disabled={loading}
+            disabled={signingIn}
           >
-            {loading ? (
+            {signingIn ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 Signing in...
