@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
+import { setUserProfile, createPatientProfile, createDoctorProfile, generatePatientId, linkPatientToDoctor } from "@/lib/roles";
 
 // Demo account credentials
 const DEMO_CREDENTIALS = {
@@ -16,16 +17,21 @@ const DEMO_CREDENTIALS = {
     password: "DemoPatient@123",
     name: "Ramesh Kumar",
     role: "Patient",
-    description: "View glucose readings, vital signs, and health insights"
+    description: "View glucose readings, vital signs, and health insights",
+    firebaseRole: "patient" as const,
   },
   doctor: {
     email: "demo.doctor@glucocare.com",
     password: "DemoDoctor@123",
     name: "Dr. Priya Sharma",
     role: "Doctor",
-    description: "View and manage patient data"
+    description: "View and manage patient data",
+    firebaseRole: "doctor" as const,
   }
 };
+
+// Demo doctor ID
+const DEMO_DOCTOR_ID = "DOC001";
 
 export default function DemoAccess() {
   const navigate = useNavigate();
@@ -38,7 +44,94 @@ export default function DemoAccess() {
 
     try {
       const credentials = DEMO_CREDENTIALS[role];
-      await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+      const result = await signInWithEmailAndPassword(auth, credentials.email, credentials.password);
+      const user = result.user;
+
+      // Ensure demo profile is complete in Firestore
+      if (role === "patient") {
+        // Create or ensure patient profile
+        const patientId = generatePatientId();
+        try {
+          await createPatientProfile({
+            uid: user.uid,
+            patientId,
+            firstName: "Ramesh",
+            lastName: "Kumar",
+            dob: "1960-01-15",
+            phone: "9876543210",
+            email: user.email || "",
+          });
+        } catch (err) {
+          console.log("Patient profile already exists or error:", err);
+        }
+
+        // Create demo doctor profile if it doesn't exist
+        try {
+          await createDoctorProfile({
+            uid: "demo-doctor-uid-001",
+            doctorId: DEMO_DOCTOR_ID,
+            firstName: "Priya",
+            lastName: "Sharma",
+            specialization: "Endocrinology",
+            licenseNumber: "LIC001",
+            email: DEMO_CREDENTIALS.doctor.email,
+            phone: "9876543211",
+          });
+        } catch (err) {
+          console.log("Doctor profile already exists or error:", err);
+        }
+
+        // Link patient to doctor
+        try {
+          await linkPatientToDoctor(patientId, "demo-doctor-uid-001");
+        } catch (err) {
+          console.log("Link already exists or error:", err);
+        }
+
+        // Set user profile with onboarded flag
+        await setUserProfile(user.uid, {
+          email: user.email || "",
+          firstName: "Ramesh",
+          lastName: "Kumar",
+          dob: "1960-01-15",
+          phone: "9876543210",
+          displayName: user.displayName || credentials.name,
+          photoURL: user.photoURL || undefined,
+          role: "patient",
+          onboarded: true,
+          primaryPatientId: patientId,
+        });
+      } else {
+        // Create or ensure doctor profile
+        try {
+          await createDoctorProfile({
+            uid: user.uid,
+            doctorId: DEMO_DOCTOR_ID,
+            firstName: "Priya",
+            lastName: "Sharma",
+            specialization: "Endocrinology",
+            licenseNumber: "LIC001",
+            email: user.email || "",
+            phone: "9876543211",
+          });
+        } catch (err) {
+          console.log("Doctor profile creation error:", err);
+        }
+
+        // Set user profile with onboarded flag
+        await setUserProfile(user.uid, {
+          email: user.email || "",
+          firstName: "Priya",
+          lastName: "Sharma",
+          dob: "1965-05-20",
+          phone: "9876543211",
+          displayName: user.displayName || credentials.name,
+          photoURL: user.photoURL || undefined,
+          role: "doctor",
+          onboarded: true,
+        });
+      }
+
       toast.success(`Logged in as ${credentials.role}`);
       navigate("/");
     } catch (error: any) {

@@ -21,11 +21,11 @@ const Login = () => {
 
   useEffect(() => {
     // If user is authenticated AND has a profile with a role, redirect to home
-    if (user && profile && profile.role) {
+    if (user && profile && profile.role && profile.onboarded) {
       navigate("/");
     }
-    // If user is authenticated but NO profile exists, they need onboarding
-    else if (user && !profile && !authLoading) {
+    // If user is authenticated but NO profile exists or not onboarded, they need onboarding
+    else if (user && (!profile || !profile.onboarded) && !authLoading) {
       navigate("/role-setup");
     }
   }, [user, profile, authLoading, navigate]);
