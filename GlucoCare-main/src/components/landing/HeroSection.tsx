@@ -1,12 +1,15 @@
 import { motion } from 'framer-motion';
-import { Heart, Activity, Shield, Users } from 'lucide-react';
+import { Heart, Activity, Shield, Users, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 interface HeroSectionProps {
   onGetStarted: () => void;
 }
 
 const HeroSection = ({ onGetStarted }: HeroSectionProps) => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-hero">
       {/* Animated background shapes */}
@@ -84,8 +87,14 @@ const HeroSection = ({ onGetStarted }: HeroSectionProps) => {
             <Button variant="hero" size="xl" onClick={onGetStarted}>
               Get Started Free
             </Button>
-            <Button variant="outline" size="xl">
-              Watch Demo
+            <Button 
+              variant="outline" 
+              size="xl"
+              onClick={() => navigate('/demo')}
+              className="gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              Try Demo
             </Button>
           </motion.div>
 
